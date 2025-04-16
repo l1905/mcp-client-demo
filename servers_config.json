@@ -25,6 +25,20 @@
                 "https://mirrors.aliyun.com/pypi/simple/",
                 "mcp-server-fetch"
             ]
+        },
+        "git": {
+            "command": "uvx",
+            "args": [
+                "--index-url",
+                "https://mirrors.aliyun.com/pypi/simple/",
+                "mcp-server-git", 
+                "--repository", 
+                "/Users/smzdm/gitlab/aihub"
+            ]
+        },
+        "my-mcp-server-ee3c675a": {
+            "type": "sse",
+            "url": "http://localhost:8000/sse/"
         }
     }
 }

@@ -7,6 +7,7 @@ from contextlib import AsyncExitStack
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+from mcp.client.sse import sse_client
 
 from openai import AsyncOpenAI
 from openai.types.chat import (
@@ -36,7 +37,7 @@ class MCPMultiServerClient:
         self.servers = {}  # 格式: {server_name: {session, stdio, write, tools_mapping}}
         self.tool_server_map = {}  # 工具名称到服务器的映射: {tool_name: server_name}
     
-    async def connect_to_servers(self, config_path: str):
+    async def connect_to_stdio_servers(self, config_path: str):
         """连接到配置文件中指定的所有服务器
         
         Args:
@@ -51,13 +52,54 @@ class MCPMultiServerClient:
         
         # 连接到每个服务器
         for server_name, server_config in config["servers"].items():
-            await self.connect_to_server(server_name, server_config)
+            typeName = server_config.get("type", "")
+            if typeName == "sse":
+                await self.connect_to_sse_server(server_name, server_config)
+            else:
+                await self.connect_to_stdio_server(server_name, server_config)
         
         print(f"\n已连接到 {len(self.servers)} 个服务器")
         print(f"可用工具总数: {len(self.tool_server_map)}")
         print(f"工具列表: {list(self.tool_server_map.keys())}")
 
-    async def connect_to_server(self, server_name: str, server_config: Dict[str, Any]):
+    async def connect_to_sse_server(self, server_name: str, server_config: Dict[str, Any]):
+        """连接到单个服务器
+        
+        Args:
+            server_name: 服务器名称
+            server_config: 服务器配置信息
+        """
+        url = server_config["url"]
+        args = server_config.get("args", {})
+        
+        print(f"\n正在连接到sse服务器 '{server_name}'...")
+        
+        sse_transport = await self.exit_stack.enter_async_context(sse_client(url=url, headers=args))
+        stdio, write = sse_transport
+        session = await self.exit_stack.enter_async_context(ClientSession(stdio, write))
+        
+        await session.initialize()
+        
+        
+        # 获取服务器提供的工具
+        response = await session.list_tools()
+        tools = response.tools
+        
+        # 存储服务器信息
+        self.servers[server_name] = {
+            "session": session,
+            "stdio": stdio,
+            "write": write,
+            "tools": {tool.name: tool for tool in tools}
+        }
+        
+        # 更新工具到服务器的映射
+        for tool in tools:
+            self.tool_server_map[tool.name] = server_name
+        
+        print(f"已连接到服务器 '{server_name}' 并获取工具: {[tool.name for tool in tools]}")
+
+    async def connect_to_stdio_server(self, server_name: str, server_config: Dict[str, Any]):
         """连接到单个服务器
         
         Args:
@@ -67,7 +109,7 @@ class MCPMultiServerClient:
         command = server_config["command"]
         args = server_config["args"]
         
-        print(f"\n正在连接到服务器 '{server_name}'...")
+        print(f"\n正在连接到stdio服务器 '{server_name}'...")
         
         server_params = StdioServerParameters(
             command=command,
@@ -80,6 +122,7 @@ class MCPMultiServerClient:
         session = await self.exit_stack.enter_async_context(ClientSession(stdio, write))
         
         await session.initialize()
+        
         
         # 获取服务器提供的工具
         response = await session.list_tools()
@@ -339,7 +382,7 @@ async def main():
 
     client = MCPMultiServerClient()
     try:
-        await client.connect_to_servers(sys.argv[1])
+        await client.connect_to_stdio_servers(sys.argv[1])
         await client.chat_loop()
     finally:
         await client.cleanup()
