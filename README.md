@@ -49,6 +49,39 @@ uv run client_openai_v2.py servers_config_v2.json
 uv run client_openai_v3.py servers_config_v3.json
 ```
 
+### servers_config.json
+
+这里需要替换为自己的目录
+
+```
+{
+    "servers": {
+        "filesystem": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-filesystem",
+                "/Users/test/Downloads",
+                "/Users/test/Downloads"
+            ]
+        },
+        "fetch": {
+            "command": "/Users/test/.local/bin/uvx",
+            "args": [
+                "--index-url",
+                "https://mirrors.aliyun.com/pypi/simple/",
+                "mcp-server-fetch"
+            ]
+        },
+        "my-mcp-server-ee3c675a": {
+            "type": "sse",
+            "url": "http://localhost:8000/sse/"
+        }
+    }
+}
+```
+
+
 
 ## 参考文章
 

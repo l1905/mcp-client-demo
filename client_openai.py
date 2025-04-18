@@ -43,7 +43,7 @@ class MCPClient:
         command = "uv" if is_python else "node"
         args = [
                 "--directory",
-                "/Users/smzdm/codesrc/python/weather",
+                "/Users/test/codesrc/python/weather",
                 "run",
                 "weather.py"
             ]
