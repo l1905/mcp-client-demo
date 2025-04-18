@@ -11,6 +11,15 @@
 
 ## 项目使用
 
+项目根目录新建`.env`虚拟环境
+
+```
+OPENAI_API_KEY="替换为自己的deepseek的api-key"
+OPENAI_BASE_URL="https://api.deepseek.com"
+```
+
+
+
 ### client 
 
 mcp的官方demo
